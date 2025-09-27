@@ -29,6 +29,7 @@ import 'package:pixez/lighting/lighting_store.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/models/illust.dart';
 import 'package:waterfall_flow/waterfall_flow.dart';
+import 'package:pixez/page/picture/illust_store.dart';
 
 class WaterFallLoading extends StatefulWidget {
   const WaterFallLoading({Key? key}) : super(key: key);
@@ -52,6 +53,10 @@ class LightingList extends StatefulWidget {
   final bool? isNested;
   final ScrollController? scrollController;
   final String? portal;
+  // When true, hide AI-generated items locally (client-side only).
+  final bool? ai;
+  // When true, hide R-18 content locally (client-side only).
+  final bool? r18;
 
   const LightingList(
       {Key? key,
@@ -59,7 +64,9 @@ class LightingList extends StatefulWidget {
       this.header,
       this.isNested,
       this.scrollController,
-      this.portal})
+      this.portal,
+      this.ai,
+      this.r18})
       : super(key: key);
 
   @override
@@ -70,6 +77,8 @@ class _LightingListState extends State<LightingList> {
   late LightingStore _store;
   late bool _isNested;
   late ScrollController _scrollController;
+  late bool _ai;
+  late bool _r18;
 
   @override
   void didUpdateWidget(LightingList oldWidget) {
@@ -77,6 +86,16 @@ class _LightingListState extends State<LightingList> {
     if (oldWidget.source != widget.source) {
       _store.source = widget.source;
       _fetch();
+    }
+    if (oldWidget.ai != widget.ai) {
+      setState(() {
+        _ai = widget.ai ?? false;
+      });
+    }
+    if (oldWidget.r18 != widget.r18) {
+      setState(() {
+        _r18 = widget.r18 ?? false;
+      });
     }
   }
 
@@ -93,10 +112,11 @@ class _LightingListState extends State<LightingList> {
 
   @override
   void initState() {
+    _ai = widget.ai ?? false;
+    _r18 = widget.r18 ?? false;
     _isNested = widget.isNested ?? false;
     _scrollController = widget.scrollController ?? ScrollController();
-    _refreshController = EasyRefreshController(
-        controlFinishLoad: true, controlFinishRefresh: true);
+    _refreshController = EasyRefreshController(controlFinishLoad: true, controlFinishRefresh: true);
     _store = LightingStore(
       widget.source,
     );
@@ -105,8 +125,7 @@ class _LightingListState extends State<LightingList> {
     _store.fetch();
 
     // Load More Detecter
-    _disableListener =
-        initializeScrollController(_scrollController, _store.fetchNext);
+    _disableListener = initializeScrollController(_scrollController, _store.fetchNext);
   }
 
   @override
@@ -133,8 +152,21 @@ class _LightingListState extends State<LightingList> {
 
   late EasyRefreshController _refreshController;
 
+  List<IllustStore> _filteredStores() {
+    final List<IllustStore> original = List.of(_store.iStores);
+    final afterMute = original.where((e) => !e.illusts!.hateByUser(ai: false)).toList();
+    var res = afterMute;
+    if (_ai == true) {
+      res = res.where((e) => (e.illusts?.illustAIType ?? 0) != 2).toList();
+    }
+    if (_r18 == true) {
+      res = res.where((e) => !(e.illusts?.tags.any((t) => t.name.startsWith('R-18')) == true)).toList();
+    }
+    return res;
+  }
+
   Widget _buildWithoutHeader(context) {
-    _store.iStores.removeWhere((element) => element.illusts!.hateByUser());
+    final displayed = _filteredStores();
     return NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification notification) {
           if (widget.isNested == true) {
@@ -162,9 +194,14 @@ class _LightingListState extends State<LightingList> {
             physics: physics,
             controller: widget.isNested ?? false ? null : _scrollController,
             padding: EdgeInsets.all(5.0),
-            itemCount: _store.iStores.length,
+            itemCount: displayed.length,
             itemBuilder: (context, index) {
-              return _buildItem(index);
+              final store = displayed[index];
+              return IllustCard(
+                store: store,
+                lightingStore: _store,
+                iStores: displayed,
+              );
             },
             gridDelegate: _buildGridDelegate(),
           ),
@@ -190,9 +227,7 @@ class _LightingListState extends State<LightingList> {
     return _store.errorMessage != null
         ? _buildErrorContent(context)
         : _store.iStores.isNotEmpty
-            ? (widget.header != null
-                ? _buildWithHeader(context)
-                : _buildWithoutHeader(context))
+            ? (widget.header != null ? _buildWithHeader(context) : _buildWithoutHeader(context))
             : Container(
                 child: _store.refreshing ? WaterFallLoading() : Container(),
               );
@@ -210,8 +245,7 @@ class _LightingListState extends State<LightingList> {
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child:
-                Text(':(', style: FluentTheme.of(context).typography.subtitle),
+            child: Text(':(', style: FluentTheme.of(context).typography.subtitle),
           ),
           Button(
               onPressed: () {
@@ -252,6 +286,7 @@ class _LightingListState extends State<LightingList> {
           _store.fetchNext();
         },
         childBuilder: ((context, physics) {
+          final displayed = _filteredStores();
           return CustomScrollView(
             physics: physics,
             controller: widget.isNested ?? false ? null : _scrollController,
@@ -261,25 +296,23 @@ class _LightingListState extends State<LightingList> {
               ),
               SliverWaterfallFlow(
                 gridDelegate: _buildGridDelegate(),
-                delegate: _buildSliverChildBuilderDelegate(context),
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                    final store = displayed[index];
+                    return IllustCard(
+                      store: store,
+                      lightingStore: _store,
+                      iStores: displayed,
+                    );
+                  },
+                  childCount: displayed.length,
+                ),
               )
             ],
           );
         }),
       ),
     );
-  }
-
-  SliverChildBuilderDelegate _buildSliverChildBuilderDelegate(
-      BuildContext context) {
-    _store.iStores.removeWhere((element) => element.illusts!.hateByUser());
-    return SliverChildBuilderDelegate((BuildContext context, int index) {
-      return IllustCard(
-        store: _store.iStores[index],
-        lightingStore: _store,
-        iStores: _store.iStores,
-      );
-    }, childCount: _store.iStores.length);
   }
 
   SliverWaterfallFlowDelegate _buildGridDelegate() {
@@ -297,23 +330,14 @@ class _LightingListState extends State<LightingList> {
   }
 
   int _buildSliderValue() {
-    final currentValue =
-        (MediaQuery.of(context).orientation == Orientation.portrait
-                ? userSetting.crossAdapterWidth
-                : userSetting.hCrossAdapterWidth)
-            .toDouble();
+    final currentValue = (MediaQuery.of(context).orientation == Orientation.portrait
+            ? userSetting.crossAdapterWidth
+            : userSetting.hCrossAdapterWidth)
+        .toDouble();
     var nowAdaptWidth = max(currentValue, 250.0);
     nowAdaptWidth = min(nowAdaptWidth, 2160.0);
     final screenWidth = MediaQuery.of(context).size.width;
     final result = max(screenWidth / nowAdaptWidth, 1.0).toInt();
     return result;
-  }
-
-  Widget _buildItem(int index) {
-    return IllustCard(
-      store: _store.iStores[index],
-      lightingStore: _store,
-      iStores: _store.iStores,
-    );
   }
 }

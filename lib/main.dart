@@ -33,6 +33,7 @@ import 'package:pixez/page/splash/splash_store.dart';
 import 'package:pixez/paths_plugin.dart';
 import 'package:pixez/single_instance_plugin.dart';
 import 'package:pixez/src/generated/i18n/app_localizations.dart';
+import 'package:pixez/component/keyboard_escape_handler.dart';
 import 'package:pixez/store/account_store.dart';
 import 'package:pixez/store/book_tag_store.dart';
 import 'package:pixez/store/fullscreen_store.dart';
@@ -44,8 +45,7 @@ import 'package:pixez/store/user_setting.dart';
 import 'package:rhttp/rhttp.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-final RouteObserver<ModalRoute<void>> routeObserver =
-    RouteObserver<ModalRoute<void>>();
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 final UserSetting userSetting = UserSetting();
 final SaveStore saveStore = SaveStore();
 final MuteStore muteStore = MuteStore();
@@ -57,6 +57,7 @@ final BookTagStore bookTagStore = BookTagStore();
 final SplashStore splashStore = SplashStore();
 final Fetcher fetcher = new Fetcher();
 final FullScreenStore fullScreenStore = FullScreenStore();
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 main(List<String> args) async {
   await Rhttp.init();
@@ -135,9 +136,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return Constants.isFluent
-        ? buildFluentUI(context)
-        : _buildMaterial(context);
+    return Constants.isFluent ? buildFluentUI(context) : _buildMaterial(context);
   }
 
   Widget _buildMaterial(BuildContext context) {
@@ -148,14 +147,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       statusBarColor: Colors.transparent,
     ));
     final botToastBuilder = BotToastInit();
-    return DynamicColorBuilder(
-        builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+    return DynamicColorBuilder(builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
       return Observer(builder: (context) {
         ColorScheme lightColorScheme;
         ColorScheme darkColorScheme;
-        if (userSetting.useDynamicColor &&
-            lightDynamic != null &&
-            darkDynamic != null) {
+        if (userSetting.useDynamicColor && lightDynamic != null && darkDynamic != null) {
           lightColorScheme = lightDynamic.harmonized();
           darkColorScheme = darkDynamic.harmonized();
         } else {
@@ -168,18 +164,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             brightness: Brightness.dark,
           );
         }
-        final brightness =
-            SchedulerBinding.instance.platformDispatcher.platformBrightness;
+        final brightness = SchedulerBinding.instance.platformDispatcher.platformBrightness;
         if (userSetting.themeInitState != 1) {
           return MaterialApp(
             home: Container(
-              color:
-                  brightness == Brightness.dark ? Colors.black : Colors.white,
+              color: brightness == Brightness.dark ? Colors.black : Colors.white,
               child: Center(child: CircularProgressIndicator()),
             ),
           );
         }
         return MaterialApp(
+          navigatorKey: appNavigatorKey,
           navigatorObservers: [BotToastNavigatorObserver(), routeObserver],
           locale: userSetting.locale,
           home: Builder(builder: (context) {
@@ -196,6 +191,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             if (Platform.isIOS) child = _buildMaskBuilder(context, child);
             child = botToastBuilder(context, child);
             I18n.context = context;
+            child = KeyboardEscapeHandler(child: child);
             return child;
           },
           themeMode: userSetting.themeMode,
@@ -208,11 +204,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 backgroundColor: lightColorScheme.surface,
               ),
               canvasColor: lightColorScheme.surfaceContainer,
-              dialogTheme: DialogThemeData(
-                  backgroundColor: lightColorScheme.surfaceContainer)),
+              dialogTheme: DialogThemeData(backgroundColor: lightColorScheme.surfaceContainer)),
           darkTheme: ThemeData.dark().copyWith(
-              scaffoldBackgroundColor:
-                  userSetting.isAMOLED ? Colors.black : null,
+              scaffoldBackgroundColor: userSetting.isAMOLED ? Colors.black : null,
               // tabBarTheme: TabBarTheme(dividerColor: Colors.transparent),
               tabBarTheme: TabBarThemeData(dividerColor: Colors.transparent),
               colorScheme: darkColorScheme),
@@ -226,8 +220,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   _buildMaskBuilder(BuildContext context, Widget? widget) {
     if (userSetting.nsfwMask) {
       final needShowMask = (Platform.isAndroid
-          ? (_appState == AppLifecycleState.paused ||
-              _appState == AppLifecycleState.paused)
+          ? (_appState == AppLifecycleState.paused || _appState == AppLifecycleState.paused)
           : _appState == AppLifecycleState.inactive);
       return Stack(
         children: [

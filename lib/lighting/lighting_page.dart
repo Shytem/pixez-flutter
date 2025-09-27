@@ -27,6 +27,7 @@ import 'package:pixez/i18n.dart';
 import 'package:pixez/lighting/lighting_store.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/models/illust.dart';
+import 'package:pixez/page/picture/illust_store.dart';
 import 'package:waterfall_flow/waterfall_flow.dart';
 
 class WaterFallLoading extends StatefulWidget {
@@ -51,7 +52,10 @@ class LightingList extends StatefulWidget {
   final bool? isNested;
   final ScrollController? scrollController;
   final String? portal;
+  // When true, hide AI-generated items locally (client-side only).
   final bool? ai;
+  // R-18 filter mode: 0 allow, 1 hide, 2 only.
+  final int? r18Mode;
 
   const LightingList(
       {Key? key,
@@ -60,7 +64,8 @@ class LightingList extends StatefulWidget {
       this.isNested,
       this.scrollController,
       this.portal,
-      this.ai})
+      this.ai,
+      this.r18Mode})
       : super(key: key);
 
   @override
@@ -72,6 +77,7 @@ class _LightingListState extends State<LightingList> {
   late bool _isNested;
   late ScrollController _scrollController;
   late bool _ai;
+  late int _r18Mode;
 
   @override
   void didUpdateWidget(LightingList oldWidget) {
@@ -80,14 +86,21 @@ class _LightingListState extends State<LightingList> {
       _store.source = widget.source;
       _fetch();
     }
+    if (oldWidget.ai != widget.ai) {
+      setState(() {
+        _ai = widget.ai ?? false;
+      });
+    }
+    if (oldWidget.r18Mode != widget.r18Mode) {
+      setState(() {
+        _r18Mode = widget.r18Mode ?? 0;
+      });
+    }
   }
 
   _fetch() async {
     await _store.fetch(force: true);
-    if (!_isNested &&
-        _store.errorMessage == null &&
-        !_store.iStores.isEmpty &&
-        _scrollController.hasClients) {
+    if (!_isNested && _store.errorMessage == null && !_store.iStores.isEmpty && _scrollController.hasClients) {
       _scrollController.position.jumpTo(0.0);
     }
   }
@@ -97,10 +110,10 @@ class _LightingListState extends State<LightingList> {
   @override
   void initState() {
     _ai = widget.ai ?? false;
+    _r18Mode = widget.r18Mode ?? 0;
     _isNested = widget.isNested ?? false;
     _scrollController = widget.scrollController ?? ScrollController();
-    _refreshController = EasyRefreshController(
-        controlFinishLoad: true, controlFinishRefresh: true);
+    _refreshController = EasyRefreshController(controlFinishLoad: true, controlFinishRefresh: true);
     _store = LightingStore(
       widget.source,
     );
@@ -132,9 +145,36 @@ class _LightingListState extends State<LightingList> {
 
   late EasyRefreshController _refreshController;
 
+  List<IllustStore> _filteredStores() {
+    // Start from original list without mutating it.
+    final List<IllustStore> original = List.of(_store.iStores);
+    // Apply existing user mute filters (tags, users, etc.).
+    final afterMute = original.where((element) => !element.illusts!.hateByUser(ai: false)).toList();
+    // Apply local AI filter when enabled.
+    var res = afterMute;
+    if (_ai == true) {
+      res = res.where((e) => (e.illusts?.illustAIType ?? 0) != 2).toList();
+    }
+    if (_r18Mode == 1) {
+      // hide
+      res = res.where((e) => !_isR18(e)).toList();
+    } else if (_r18Mode == 2) {
+      // only
+      res = res.where((e) => _isR18(e)).toList();
+    }
+    return res;
+  }
+
+  bool _isR18(IllustStore e) {
+    try {
+      return e.illusts?.tags.any((t) => t.name.startsWith('R-18')) == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Widget _buildWithoutHeader(context) {
-    _store.iStores
-        .removeWhere((element) => element.illusts!.hateByUser(ai: _ai));
+    final displayed = _filteredStores();
     return NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification notification) {
           if (widget.isNested == true) {
@@ -163,9 +203,14 @@ class _LightingListState extends State<LightingList> {
             physics: physics,
             controller: widget.isNested ?? false ? null : _scrollController,
             padding: EdgeInsets.all(5.0),
-            itemCount: _store.iStores.length,
+            itemCount: displayed.length,
             itemBuilder: (context, index) {
-              return _buildItem(index);
+              final store = displayed[index];
+              return IllustCard(
+                store: store,
+                lightingStore: _store,
+                iStores: displayed,
+              );
             },
             gridDelegate: _buildGridDelegate(),
           ),
@@ -191,9 +236,7 @@ class _LightingListState extends State<LightingList> {
     return _store.errorMessage != null
         ? _buildErrorContent(context)
         : _store.iStores.isNotEmpty
-            ? (widget.header != null
-                ? _buildWithHeader(context)
-                : _buildWithoutHeader(context))
+            ? (widget.header != null ? _buildWithHeader(context) : _buildWithoutHeader(context))
             : Container(
                 child: _store.refreshing ? WaterFallLoading() : Container(),
               );
@@ -211,8 +254,7 @@ class _LightingListState extends State<LightingList> {
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child:
-                Text(':(', style: Theme.of(context).textTheme.headlineMedium),
+            child: Text(':(', style: Theme.of(context).textTheme.headlineMedium),
           ),
           TextButton(
               onPressed: () {
@@ -246,8 +288,7 @@ class _LightingListState extends State<LightingList> {
         controller: _refreshController,
         scrollController: _scrollController,
         header: PixezDefault.header(context),
-        footer:
-            PixezDefault.footer(context, position: IndicatorPosition.locator),
+        footer: PixezDefault.footer(context, position: IndicatorPosition.locator),
         onRefresh: () {
           _store.fetch(force: true);
         },
@@ -255,6 +296,7 @@ class _LightingListState extends State<LightingList> {
           _store.fetchNext();
         },
         childBuilder: ((context, physics) {
+          final displayed = _filteredStores();
           return CustomScrollView(
             physics: physics,
             controller: widget.isNested ?? false ? null : _scrollController,
@@ -264,7 +306,17 @@ class _LightingListState extends State<LightingList> {
               ),
               SliverWaterfallFlow(
                 gridDelegate: _buildGridDelegate(),
-                delegate: _buildSliverChildBuilderDelegate(context),
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                    final store = displayed[index];
+                    return IllustCard(
+                      lightingStore: _store,
+                      store: store,
+                      iStores: displayed,
+                    );
+                  },
+                  childCount: displayed.length,
+                ),
               ),
               const FooterLocator.sliver(),
             ],
@@ -272,19 +324,6 @@ class _LightingListState extends State<LightingList> {
         }),
       ),
     );
-  }
-
-  SliverChildBuilderDelegate _buildSliverChildBuilderDelegate(
-      BuildContext context) {
-    _store.iStores
-        .removeWhere((element) => element.illusts!.hateByUser(ai: _ai));
-    return SliverChildBuilderDelegate((BuildContext context, int index) {
-      return IllustCard(
-        lightingStore: _store,
-        store: _store.iStores[index],
-        iStores: _store.iStores,
-      );
-    }, childCount: _store.iStores.length);
   }
 
   SliverWaterfallFlowDelegate _buildGridDelegate() {
@@ -302,23 +341,14 @@ class _LightingListState extends State<LightingList> {
   }
 
   int _buildSliderValue() {
-    final currentValue =
-        (MediaQuery.of(context).orientation == Orientation.portrait
-                ? userSetting.crossAdapterWidth
-                : userSetting.hCrossAdapterWidth)
-            .toDouble();
+    final currentValue = (MediaQuery.of(context).orientation == Orientation.portrait
+            ? userSetting.crossAdapterWidth
+            : userSetting.hCrossAdapterWidth)
+        .toDouble();
     var nowAdaptWidth = max(currentValue, 50.0);
     nowAdaptWidth = min(nowAdaptWidth, 2160.0);
     final screenWidth = MediaQuery.of(context).size.width;
     final result = max(screenWidth / nowAdaptWidth, 1.0).toInt();
     return result;
-  }
-
-  Widget _buildItem(int index) {
-    return IllustCard(
-      store: _store.iStores[index],
-      lightingStore: _store,
-      iStores: _store.iStores,
-    );
   }
 }

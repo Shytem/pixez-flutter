@@ -19,10 +19,11 @@ import 'dart:async';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:pixez/fluent/component/sort_group.dart';
 import 'package:pixez/i18n.dart';
-import 'package:pixez/fluent/lighting/fluent_lighting_page.dart';
 import 'package:pixez/lighting/lighting_store.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/network/api_client.dart';
+
+import '../../../../../lighting/lighting_page.dart';
 
 class NewIllustPage extends StatefulWidget {
   final String restrict;
@@ -38,6 +39,8 @@ class _NewIllustPageState extends State<NewIllustPage>
   late ApiForceSource futureGet;
   late StreamSubscription<String> subscription;
   late ScrollController _scrollController;
+  // When true, hide AI works. Defaults to showing AI (button active).
+  bool _hideAI = false;
 
   @override
   void initState() {
@@ -72,11 +75,15 @@ class _NewIllustPageState extends State<NewIllustPage>
             height: 45.0,
           ),
           portal: "new",
+          ai: _hideAI,
         ),
         Align(
           alignment: Alignment.topCenter,
           child: Container(
-            child: SortGroup(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SortGroup(
               onChange: (index) {
                 if (index == 0)
                   setState(() {
@@ -106,6 +113,15 @@ class _NewIllustPageState extends State<NewIllustPage>
                 I18n.of(context).private
               ],
             ),
+            const SizedBox(width: 8),
+            ToggleSwitch(
+              // Active means AI is shown; checked reflects show state.
+              checked: !_hideAI,
+              onChanged: (v) => setState(() => _hideAI = !v),
+              content: Text('AI'),
+            ),
+          ],
+        ),
           ),
         )
       ],

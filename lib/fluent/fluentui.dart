@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/constants.dart';
+import 'package:pixez/component/keyboard_escape_handler.dart';
 import 'package:pixez/fluent/page/splash/splash_page.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/src/generated/i18n/app_localizations.dart';
@@ -73,9 +74,7 @@ Widget buildFluentUI(BuildContext context) {
     return Observer(builder: (context) {
       ColorScheme lightColorScheme;
       ColorScheme darkColorScheme;
-      if (userSetting.useDynamicColor &&
-          lightDynamic != null &&
-          darkDynamic != null) {
+      if (userSetting.useDynamicColor && lightDynamic != null && darkDynamic != null) {
         lightColorScheme = lightDynamic.harmonized();
         darkColorScheme = darkDynamic.harmonized();
       } else {
@@ -91,8 +90,7 @@ Widget buildFluentUI(BuildContext context) {
 
       final isDark = switch (userSetting.themeMode) {
         ThemeMode.dark => true,
-        ThemeMode.system =>
-          MediaQuery.platformBrightnessOf(context) == Brightness.dark,
+        ThemeMode.system => MediaQuery.platformBrightnessOf(context) == Brightness.dark,
         ThemeMode.light => false,
       };
 
@@ -114,6 +112,7 @@ Widget buildFluentUI(BuildContext context) {
       }
 
       return FluentApp(
+        navigatorKey: appNavigatorKey,
         navigatorObservers: [
           BotToastNavigatorObserver(),
           routeObserver,
@@ -132,6 +131,7 @@ Widget buildFluentUI(BuildContext context) {
         title: 'PixEz',
         builder: (context, child) {
           child = botToastBuilder(context, child);
+          child = KeyboardEscapeHandler(child: child);
           return Directionality(
             textDirection: TextDirection.ltr,
             child: child,
@@ -166,18 +166,14 @@ Widget buildFluentUI(BuildContext context) {
                 )
               : null,
         ),
-        localizationsDelegates: [
-          _FluentLocalizationsDelegate(),
-          ...AppLocalizations.localizationsDelegates
-        ],
+        localizationsDelegates: [_FluentLocalizationsDelegate(), ...AppLocalizations.localizationsDelegates],
         supportedLocales: AppLocalizations.supportedLocales,
       );
     });
   });
 }
 
-class _FluentLocalizationsDelegate
-    extends LocalizationsDelegate<FluentLocalizations> {
+class _FluentLocalizationsDelegate extends LocalizationsDelegate<FluentLocalizations> {
   const _FluentLocalizationsDelegate();
 
   @override

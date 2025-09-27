@@ -257,17 +257,20 @@ abstract class _SaveStoreBase with Store {
           fileName = "sanity/$overFileName";
         }
 
+        final targetSaveMode = Platform.isMacOS ? 2 : userSetting.saveMode;
         if (userSetting.isClearOldFormatFile)
           DocumentPlugin.save(uint8list, fileName,
-              clearOld: userSetting.isClearOldFormatFile);
+              clearOld: userSetting.isClearOldFormatFile,
+              saveMode: targetSaveMode);
         else
-          DocumentPlugin.save(uint8list, fileName);
+          DocumentPlugin.save(uint8list, fileName, saveMode: targetSaveMode);
       } catch (e) {
         print(e);
       }
       return;
     } else {
-      DocumentPlugin.save(uint8list, fileName);
+      final targetSaveMode = Platform.isMacOS ? 2 : userSetting.saveMode;
+      DocumentPlugin.save(uint8list, fileName, saveMode: targetSaveMode);
     }
   }
 
@@ -358,8 +361,9 @@ abstract class _SaveStoreBase with Store {
   @action
   Future<void> saveImage(Illusts illusts,
       {int? index, bool redo = false}) async {
-    if (Platform.isIOS) {
-      //IOS APP STORE REVIEW
+    // iOS always asks Photos permission.
+    // macOS asks only when saving to Photos library (saveMode == 0).
+    if (Platform.isIOS || (Platform.isMacOS && userSetting.saveMode == 0)) {
       final status = await DocumentPlugin.permissionStatus() ?? false;
       if (!status) {
         await DocumentPlugin.requestPermission();

@@ -6,9 +6,7 @@
 //
 
 import Foundation
-import Photos
 import FlutterMacOS
-import IOKit.ps
 
 struct DocumentPlugin {
     static func bind(controller : FlutterViewController){
@@ -21,119 +19,43 @@ struct DocumentPlugin {
                 let data  = args?["data"] as! FlutterStandardTypedData
                 let name = args?["name"] as! String
                 let sData = Data(data.data)
-                save(sData, name: name, in: name.contains("sanity") ? "pxez_sanity" : "pxez")
+                let album = name.contains("sanity") ? "pxez_sanity" : "pxez"
+                // Always save to Downloads on macOS to avoid Photos TCC crashes
+                saveToDownloads(sData, name: name, in: album)
                 result(true)
                 return
             } else if call.method == "permissionStatus" {
-                if #available(iOS 14, *) {
-                    if #available(macOS 11.0, *) {
-                        let readWriteStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-                        result(readWriteStatus == .authorized)
-                    } else {
-                        // Fallback on earlier versions
-                    }
-                    
-                } else {
-                    result(true)
-                }
+                // On macOS we save to Downloads only, no Photos permission needed.
+                result(true)
                 return
             } else if call.method == "requestPermission" {
-                if #available(iOS 14, *) {
-                    if #available(macOS 11.0, *) {
-                        PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
-                            result(status == .authorized)
-                        }
-                    } else {
-                        // Fallback on earlier versions
-                    }
-                } else {
-                    result(true)
-                }
+                // No-op on macOS (Downloads only)
+                result(true)
                 return
             }
             result(false)
         })
     }
     
-    static var picCacheDir: URL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("Pic", isDirectory: true)
-    
-    static func save(_ data: Data,name : String, in dir: String) {
-        if PHPhotoLibrary.authorizationStatus() != PHAuthorizationStatus.authorized {
-            PHPhotoLibrary.requestAuthorization({ (status) -> Void in
-                if PHPhotoLibrary.authorizationStatus() != PHAuthorizationStatus.authorized {
-                    return
-                }
-                createAlbum(albumName: dir, completion: { assetCollection in
-                    self.save(data: data, name: name, assetCollection: assetCollection)
-                })
-            })
-        } else {
-            createAlbum(albumName: dir, completion: { assetCollection in
-                self.save(data: data, name: name, assetCollection: assetCollection)
-            })
-        }
-    }
-    
-    static func createAlbum(albumName: String, completion: @escaping (PHAssetCollection) -> Void) {
-        if let assetCollection = self.findAlbum(name: albumName) {
-            completion(assetCollection)
-            return
-        }
-        PHPhotoLibrary.shared().performChanges({
-            PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle: albumName)
-        }){ success, error in
-            if success, let assetCollection = self.findAlbum(name: albumName) {
-                completion(assetCollection)
-            } else {
-                
-            }
-        }
-    }
-    
-    static func findAlbum(name: String) -> PHAssetCollection? {
-        let fetchOptions = PHFetchOptions()
-        fetchOptions.predicate = NSPredicate(format: "title = %@", name)
-        let collection = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: fetchOptions)
-        
-        return collection.firstObject
-    }
-    
-    static func save(data:Data,name:String, assetCollection: PHAssetCollection){
-        if !FileManager.default.fileExists(atPath: picCacheDir.path) {
-            do{
-                try FileManager.default.createDirectory(at: picCacheDir, withIntermediateDirectories: true)
-            } catch {
-                print("create dir failed => \(picCacheDir.path)")
-                return
-            }
-        }
-        
-        guard let fileName = name.split(separator: " ").last else { return }
-        print("fileName = \(fileName)")
-        
-        let fileUrl = picCacheDir.appendingPathComponent("\(fileName)")
-        
+    static func saveToDownloads(_ data: Data, name: String, in dir: String) {
+        let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
+        var targetDir = downloads.appendingPathComponent(dir, isDirectory: true)
         do {
-            try data.write(to: fileUrl)
-            
+            try FileManager.default.createDirectory(at: targetDir, withIntermediateDirectories: true)
         } catch {
-            return
+            // ignore
         }
-        
-        PHPhotoLibrary.shared().performChanges({
-            guard let assetChangeRequest = PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: fileUrl) else {
-                return
+        // Support nested subfolders in name (e.g. "user_id/filename.jpg")
+        let parts = name.split(separator: "/").map { String($0) }
+        var folder = targetDir
+        if parts.count > 1 {
+            for i in 0..<(parts.count - 1) {
+                folder = folder.appendingPathComponent(parts[i], isDirectory: true)
             }
-            let assetPlaceHolder = assetChangeRequest.placeholderForCreatedAsset
-            let albumChangeRequest = PHAssetCollectionChangeRequest(for: assetCollection)
-            let enumeration: NSArray = assetPlaceHolder == nil ? [] : [assetPlaceHolder!]
-            albumChangeRequest?.addAssets(enumeration)
-        }, completionHandler: { (success, error) -> Void in
-            print("success \(success)")
-            do {
-                try FileManager.default.removeItem(at: fileUrl)
-            } catch {
-            }
-        })
+            do { try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true) } catch {}
+        }
+        let fileUrl = folder.appendingPathComponent(parts.last ?? name)
+        do { try data.write(to: fileUrl) } catch {}
     }
+
 }
