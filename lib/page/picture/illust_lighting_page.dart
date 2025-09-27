@@ -50,6 +50,7 @@ import 'package:pixez/page/user/user_store.dart';
 import 'package:pixez/page/user/users_page.dart';
 import 'package:pixez/page/zoom/photo_zoom_page.dart';
 import 'package:pixez/supportor_plugin.dart';
+import 'package:pixez/utils/illust_share.dart';
 import 'package:share_plus/share_plus.dart';
 
 class IllustLightingPage extends StatefulWidget {
@@ -58,12 +59,7 @@ class IllustLightingPage extends StatefulWidget {
   final IllustStore? store;
   final GestureDragEndCallback? onHorizontalDragEnd;
 
-  const IllustLightingPage(
-      {Key? key,
-      required this.id,
-      this.heroString,
-      this.store,
-      this.onHorizontalDragEnd})
+  const IllustLightingPage({Key? key, required this.id, this.heroString, this.store, this.onHorizontalDragEnd})
       : super(key: key);
 
   @override
@@ -115,20 +111,14 @@ class IllustVerticalPage extends StatefulWidget {
   final IllustStore? store;
   final GestureDragEndCallback? onHorizontalDragEnd;
 
-  const IllustVerticalPage(
-      {Key? key,
-      required this.id,
-      this.heroString,
-      this.store,
-      this.onHorizontalDragEnd})
+  const IllustVerticalPage({Key? key, required this.id, this.heroString, this.store, this.onHorizontalDragEnd})
       : super(key: key);
 
   @override
   _IllustVerticalPageState createState() => _IllustVerticalPageState();
 }
 
-class _IllustVerticalPageState extends State<IllustVerticalPage>
-    with AutomaticKeepAliveClientMixin {
+class _IllustVerticalPageState extends State<IllustVerticalPage> with AutomaticKeepAliveClientMixin {
   UserStore? userStore;
   late IllustStore _illustStore;
   late IllustAboutStore _aboutStore;
@@ -139,8 +129,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
   @override
   void initState() {
     _focusNode = FocusNode();
-    _refreshController = EasyRefreshController(
-        controlFinishLoad: true, controlFinishRefresh: true);
+    _refreshController = EasyRefreshController(controlFinishLoad: true, controlFinishRefresh: true);
     _scrollController = ScrollController();
     _illustStore = widget.store ?? IllustStore(widget.id, null);
     _illustStore.fetch();
@@ -161,10 +150,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
   }
 
   void _loadAbout() {
-    if (mounted &&
-        _scrollController.hasClients &&
-        _aboutStore.illusts.isEmpty &&
-        !_aboutStore.fetching) {
+    if (mounted && _scrollController.hasClients && _aboutStore.illusts.isEmpty && !_aboutStore.fetching) {
       _aboutStore.next();
     }
   }
@@ -198,16 +184,14 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                       icon: Icon(Icons.expand_less),
                       onPressed: () {
                         double p = _scrollController.position.maxScrollExtent -
-                            (_aboutStore.illusts.length / 3.0) *
-                                (MediaQuery.of(context).size.width / 3.0);
+                            (_aboutStore.illusts.length / 3.0) * (MediaQuery.of(context).size.width / 3.0);
                         if (p < 0) p = 0;
                         _scrollController.position.jumpTo(p);
                       }),
                   IconButton(
                       icon: Icon(Icons.more_vert),
                       onPressed: () {
-                        buildShowModalBottomSheet(
-                            context, _illustStore.illusts!);
+                        buildShowModalBottomSheet(context, _illustStore.illusts!);
                       })
                 ],
               )
@@ -251,21 +235,15 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                 child: FloatingActionButton(
                   heroTag: widget.id,
                   onPressed: () async {
-                    if (userSetting.saveAfterStar &&
-                        (_illustStore.state == 0)) {
+                    if (userSetting.saveAfterStar && (_illustStore.state == 0)) {
                       saveStore.saveImage(_illustStore.illusts!);
                     }
-                    _illustStore.star(
-                        restrict: userSetting.defaultPrivateLike
-                            ? "private"
-                            : "public");
+                    _illustStore.star(restrict: userSetting.defaultPrivateLike ? "private" : "public");
                     if (userSetting.followAfterStar) {
                       bool success = await _illustStore.followAfterStar();
                       if (success) {
                         userStore?.isFollow = true;
-                        BotToast.showText(
-                            text:
-                                "${_illustStore.illusts!.user.name} ${I18n.of(context).followed}");
+                        BotToast.showText(text: "${_illustStore.illusts!.user.name} ${I18n.of(context).followed}");
                       }
                     }
                   },
@@ -285,10 +263,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
             }
             return Container(
               child: Stack(
-                children: [
-                  _buildContent(context, _illustStore.illusts),
-                  _buildAppbar()
-                ],
+                children: [_buildContent(context, _illustStore.illusts), _buildAppbar()],
               ),
             );
           }),
@@ -370,8 +345,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
     return SelectionArea(
       child: Text(
         text,
-        style: TextStyle(
-            color: Theme.of(context).colorScheme.secondary, fontSize: 12),
+        style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontSize: 12),
       ),
     );
   }
@@ -400,8 +374,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
         controller: _scrollController,
         slivers: [
           if (userSetting.isBangs || ((data.width / data.height) > 5))
-            SliverToBoxAdapter(
-                child: Container(height: MediaQuery.of(context).padding.top)),
+            SliverToBoxAdapter(child: Container(height: MediaQuery.of(context).padding.top)),
           ..._buildPhotoList(data),
           SliverToBoxAdapter(
             child: IllustDetailContent(
@@ -414,11 +387,8 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
             ),
           ),
           SliverGrid(
-              delegate:
-                  SliverChildBuilderDelegate((BuildContext context, int index) {
-                var list = _aboutStore.illusts
-                    .map((element) => IllustStore(element.id, element))
-                    .toList();
+              delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
+                var list = _aboutStore.illusts.map((element) => IllustStore(element.id, element)).toList();
                 return InkWell(
                   onTap: () {
                     Leader.push(
@@ -457,12 +427,8 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                         return;
                       }
                     }
-                    if (userSetting.starAfterSave &&
-                        (_illustStore.state == 0)) {
-                      _illustStore.star(
-                          restrict: userSetting.defaultPrivateLike
-                              ? "private"
-                              : "public");
+                    if (userSetting.starAfterSave && (_illustStore.state == 0)) {
+                      _illustStore.star(restrict: userSetting.defaultPrivateLike ? "private" : "public");
                     }
                     saveStore.saveImage(_aboutStore.illusts[index]);
                   },
@@ -472,16 +438,14 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                   ),
                 );
               }, childCount: _aboutStore.illusts.length),
-              gridDelegate:
-                  SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3))
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3))
         ],
       ),
     );
   }
 
   List<Widget> _buildPhotoList(Illusts data) {
-    final height = ((data.height.toDouble() / data.width) *
-        MediaQuery.of(context).size.width);
+    final height = ((data.height.toDouble() / data.width) * MediaQuery.of(context).size.width);
     return [
       if (data.type == "ugoira")
         SliverToBoxAdapter(
@@ -496,8 +460,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
       if (data.type != "ugoira")
         data.pageCount == 1
             ? SliverList(
-                delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
+                delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
                 String url = data.illustDetailUrl;
                 if (data.type == "manga") {
                   url = data.managaDetailUrl;
@@ -535,8 +498,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                 );
               }, childCount: 1))
             : SliverList(
-                delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
+                delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
                 return InkWell(
                     onLongPress: () {
                       _pressSave(data, index);
@@ -563,8 +525,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child:
-                Text(':(', style: Theme.of(context).textTheme.headlineMedium),
+            child: Text(':(', style: Theme.of(context).textTheme.headlineMedium),
           ),
           Text(
             '${_illustStore.errorMessage}',
@@ -605,8 +566,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
         placeWidget: Container(
           height: height,
           child: Center(
-            child: Text('$index',
-                style: Theme.of(context).textTheme.headlineMedium),
+            child: Text('$index', style: Theme.of(context).textTheme.headlineMedium),
           ),
         ),
       );
@@ -637,8 +597,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
             placeWidget: Container(
               height: 150,
               child: Center(
-                child: Text('$index',
-                    style: Theme.of(context).textTheme.headlineMedium),
+                child: Text('$index', style: Theme.of(context).textTheme.headlineMedium),
               ),
             ),
           );
@@ -653,12 +612,10 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
               text: TextSpan(children: [
                 TextSpan(
                     text: "${f.name}",
-                    style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                        color: Theme.of(context).colorScheme.primary)),
+                    style:
+                        Theme.of(context).textTheme.bodyLarge!.copyWith(color: Theme.of(context).colorScheme.primary)),
                 if (f.translatedName != null)
-                  TextSpan(
-                      text: "\n${"${f.translatedName}"}",
-                      style: Theme.of(context).textTheme.bodyLarge!)
+                  TextSpan(text: "\n${"${f.translatedName}"}", style: Theme.of(context).textTheme.bodyLarge!)
               ]),
             ),
             children: <Widget>[
@@ -685,8 +642,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
         })) {
       case 0:
         {
-          muteStore.insertBanTag(BanTagPersist(
-              name: f.name, translateName: f.translatedName ?? ""));
+          muteStore.insertBanTag(BanTagPersist(name: f.name, translateName: f.translatedName ?? ""));
         }
         break;
       case 1:
@@ -737,22 +693,17 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                     children: [
                       TextSpan(
                         text: " ",
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleSmall!
-                            .copyWith(fontSize: 12),
+                        style: Theme.of(context).textTheme.titleSmall!.copyWith(fontSize: 12),
                       ),
                       if (f.translatedName != null)
                         TextSpan(
                             text: "${f.translatedName}",
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall!
-                                .copyWith(fontSize: 12))
+                            style: Theme.of(context).textTheme.titleSmall!.copyWith(fontSize: 12))
                     ],
-                    style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontSize: 12))),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall!
+                        .copyWith(color: Theme.of(context).colorScheme.primary, fontSize: 12))),
           ],
         ),
       ),
@@ -760,8 +711,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
   }
 
   Widget _buildNameAvatar(BuildContext context, Illusts illust) {
-    if (userStore == null)
-      userStore = UserStore(illust.user.id, null, illust.user);
+    if (userStore == null) userStore = UserStore(illust.user.id, null, illust.user);
     return Observer(builder: (_) {
       Future.delayed(Duration(seconds: 2), () {
         _loadAbout();
@@ -776,8 +726,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
           children: <Widget>[
             Padding(
                 child: Hero(
-                  tag: illust.user.profileImageUrls.medium +
-                      this.hashCode.toString(),
+                  tag: illust.user.profileImageUrls.medium + this.hashCode.toString(),
                   child: PainterAvatar(
                     url: illust.user.profileImageUrls.medium,
                     id: illust.user.id,
@@ -790,8 +739,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                             userStore: userStore,
                             heroTag: this.hashCode.toString(),
                           ));
-                      _illustStore.illusts!.user.isFollowed =
-                          userStore!.isFollow;
+                      _illustStore.illusts!.user.isFollowed = userStore!.isFollow;
                     },
                   ),
                 ),
@@ -808,10 +756,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                       child: SelectionArea(
                         child: Text(
                           illust.user.name,
-                          style: TextStyle(
-                              fontSize: 14,
-                              color:
-                                  Theme.of(context).textTheme.bodySmall!.color),
+                          style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodySmall!.color),
                         ),
                       ),
                     ),
@@ -859,8 +804,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
     if (userSetting.illustDetailSaveSkipLongPress) {
       saveStore.saveImage(illust, index: index);
       if (userSetting.starAfterSave && (_illustStore.state == 0)) {
-        _illustStore.star(
-            restrict: userSetting.defaultPrivateLike ? "private" : "public");
+        _illustStore.star(restrict: userSetting.defaultPrivateLike ? "private" : "public");
       }
       return;
     }
@@ -893,12 +837,8 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                   onTap: () async {
                     Navigator.of(context).pop();
                     saveStore.saveImage(illust, index: index);
-                    if (userSetting.starAfterSave &&
-                        (_illustStore.state == 0)) {
-                      _illustStore.star(
-                          restrict: userSetting.defaultPrivateLike
-                              ? "private"
-                              : "public");
+                    if (userSetting.starAfterSave && (_illustStore.state == 0)) {
+                      _illustStore.star(restrict: userSetting.defaultPrivateLike ? "private" : "public");
                     }
                   },
                   onLongPress: () async {
@@ -906,6 +846,21 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                     saveStore.saveImage(illust, index: index);
                   },
                   title: Text(I18n.of(context).save),
+                ),
+                ListTile(
+                  leading: Icon(Icons.share),
+                  onTap: () async {
+                    final renderBox = context.findRenderObject() as RenderBox?;
+                    final origin = renderBox != null ? renderBox.localToGlobal(Offset.zero) & renderBox.size : null;
+                    Navigator.of(context).pop();
+                    await shareIllustImage(
+                      context: this.context,
+                      illust: illust,
+                      index: index,
+                      origin: origin,
+                    );
+                  },
+                  title: Text(I18n.of(context).share),
                 ),
                 ListTile(
                   leading: Icon(Icons.cancel),
@@ -930,8 +885,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
     final result = await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16.0))),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16.0))),
         builder: (context) {
           return StatefulBuilder(builder: (context, setDialogState) {
             return SafeArea(
@@ -994,14 +948,11 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                           ));
                         },
                         itemCount: illust.metaPages.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
                       ),
                     ),
                     ListTile(
-                      leading: Icon(!allOn
-                          ? Icons.check_circle_outline
-                          : Icons.check_circle),
+                      leading: Icon(!allOn ? Icons.check_circle_outline : Icons.check_circle),
                       title: Text(I18n.of(context).all),
                       onTap: () {
                         allOn = !allOn;
@@ -1016,12 +967,8 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                       title: Text(I18n.of(context).save),
                       onTap: () {
                         Navigator.of(context).pop("OK");
-                        if (userSetting.starAfterSave &&
-                            (_illustStore.state == 0)) {
-                          _illustStore.star(
-                              restrict: userSetting.defaultPrivateLike
-                                  ? "private"
-                                  : "public");
+                        if (userSetting.starAfterSave && (_illustStore.state == 0)) {
+                          _illustStore.star(restrict: userSetting.defaultPrivateLike ? "private" : "public");
                         }
                       },
                     ),
@@ -1051,9 +998,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
         builder: (_) {
           return Container(
             decoration: BoxDecoration(
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(8.0),
-                    topRight: Radius.circular(8.0))),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(8.0), topRight: Radius.circular(8.0))),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1085,11 +1030,9 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                           Icons.local_library,
                         ),
                         onTap: () async {
-                          final str =
-                              userSetting.illustToShareInfoText(illusts);
+                          final str = userSetting.illustToShareInfoText(illusts);
                           await Clipboard.setData(ClipboardData(text: str));
-                          BotToast.showText(
-                              text: I18n.of(context).copied_to_clipboard);
+                          BotToast.showText(text: I18n.of(context).copied_to_clipboard);
                           Navigator.of(context).pop();
                         },
                       ),
@@ -1100,15 +1043,10 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                             Icons.share,
                           ),
                           onTap: () {
-                            final box =
-                                context.findRenderObject() as RenderBox?;
-                            final pos = box != null
-                                ? box.localToGlobal(Offset.zero) & box.size
-                                : null;
+                            final box = context.findRenderObject() as RenderBox?;
+                            final pos = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
                             Navigator.of(context).pop();
-                            Share.share(
-                                "https://www.pixiv.net/artworks/${widget.id}",
-                                sharePositionOrigin: pos);
+                            Share.share("https://www.pixiv.net/artworks/${widget.id}", sharePositionOrigin: pos);
                           },
                         );
                       }),
@@ -1118,11 +1056,8 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                         ),
                         title: Text(I18n.of(context).link),
                         onTap: () async {
-                          await Clipboard.setData(ClipboardData(
-                              text:
-                                  "https://www.pixiv.net/artworks/${widget.id}"));
-                          BotToast.showText(
-                              text: I18n.of(context).copied_to_clipboard);
+                          await Clipboard.setData(ClipboardData(text: "https://www.pixiv.net/artworks/${widget.id}"));
+                          BotToast.showText(text: I18n.of(context).copied_to_clipboard);
                           Navigator.of(context).pop();
                         },
                       ),
@@ -1130,9 +1065,8 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                         title: Text(I18n.of(context).ban),
                         leading: Icon(Icons.brightness_auto),
                         onTap: () {
-                          muteStore.insertBanIllusts(BanIllustIdPersist(
-                              illustId: widget.id.toString(),
-                              name: illusts.title));
+                          muteStore.insertBanIllusts(
+                              BanIllustIdPersist(illustId: widget.id.toString(), name: illusts.title));
                           Navigator.pop(context);
                         },
                       ),
@@ -1145,17 +1079,14 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                             await Reporter.show(
                                 context,
                                 () async => await muteStore.insertBanIllusts(
-                                    BanIllustIdPersist(
-                                        illustId: widget.id.toString(),
-                                        name: illusts.title)));
+                                    BanIllustIdPersist(illustId: widget.id.toString(), name: illusts.title)));
                           } else {
                             await showDialog(
                                 context: context,
                                 builder: (context) {
                                   return AlertDialog(
                                     title: Text(I18n.of(context).report),
-                                    content:
-                                        Text(I18n.of(context).report_message),
+                                    content: Text(I18n.of(context).report_message),
                                     actions: <Widget>[
                                       TextButton(
                                         child: Text(I18n.of(context).cancel),
@@ -1188,8 +1119,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
   }
 
   Future<void> _showBookMarkTag() async {
-    final result =
-        await Leader.pushWithScaffold(context, TagForIllustPage(id: widget.id));
+    final result = await Leader.pushWithScaffold(context, TagForIllustPage(id: widget.id));
     if (result is Map) {
       LPrinter.d(result);
       String restrict = result['restrict'];

@@ -38,6 +38,7 @@ import 'package:pixez/page/picture/illust_detail_content.dart';
 import 'package:pixez/page/picture/illust_store.dart';
 import 'package:pixez/page/picture/picture_list_page.dart';
 import 'package:pixez/page/picture/tag_for_illust_page.dart';
+import 'package:pixez/utils/illust_share.dart';
 import 'package:pixez/page/picture/ugoira_loader.dart';
 import 'package:pixez/page/search/result_page.dart';
 import 'package:pixez/page/user/user_store.dart';
@@ -51,20 +52,14 @@ class IllustRowPage extends StatefulWidget {
   final IllustStore? store;
   final GestureDragEndCallback? onHorizontalDragEnd;
 
-  const IllustRowPage(
-      {Key? key,
-      required this.id,
-      this.heroString,
-      this.store,
-      this.onHorizontalDragEnd})
+  const IllustRowPage({Key? key, required this.id, this.heroString, this.store, this.onHorizontalDragEnd})
       : super(key: key);
 
   @override
   _IllustRowPageState createState() => _IllustRowPageState();
 }
 
-class _IllustRowPageState extends State<IllustRowPage>
-    with AutomaticKeepAliveClientMixin {
+class _IllustRowPageState extends State<IllustRowPage> with AutomaticKeepAliveClientMixin {
   UserStore? userStore;
   late IllustStore _illustStore;
   late IllustAboutStore _aboutStore;
@@ -73,8 +68,7 @@ class _IllustRowPageState extends State<IllustRowPage>
   bool tempView = false;
   @override
   void initState() {
-    _refreshController = EasyRefreshController(
-        controlFinishLoad: true, controlFinishRefresh: true);
+    _refreshController = EasyRefreshController(controlFinishLoad: true, controlFinishRefresh: true);
     _scrollController = ScrollController();
     _illustStore = widget.store ?? IllustStore(widget.id, null);
     _illustStore.fetch();
@@ -94,10 +88,8 @@ class _IllustRowPageState extends State<IllustRowPage>
   }
 
   void _loadAbout() {
-    if (mounted &&
-        _scrollController.hasClients &&
-        _aboutStore.illusts.isEmpty &&
-        !_aboutStore.fetching) _aboutStore.next();
+    if (mounted && _scrollController.hasClients && _aboutStore.illusts.isEmpty && !_aboutStore.fetching)
+      _aboutStore.next();
   }
 
   @override
@@ -127,8 +119,7 @@ class _IllustRowPageState extends State<IllustRowPage>
                   IconButton(
                       icon: Icon(Icons.more_vert),
                       onPressed: () {
-                        buildShowModalBottomSheet(
-                            context, _illustStore.illusts!);
+                        buildShowModalBottomSheet(context, _illustStore.illusts!);
                       })
                 ],
               )
@@ -225,10 +216,7 @@ class _IllustRowPageState extends State<IllustRowPage>
         }
         return Container(
           child: Stack(
-            children: [
-              _buildContent(context, _illustStore.illusts),
-              _buildAppbar()
-            ],
+            children: [_buildContent(context, _illustStore.illusts), _buildAppbar()],
           ),
         );
       }),
@@ -254,8 +242,7 @@ class _IllustRowPageState extends State<IllustRowPage>
           ),
         ),
       );
-    var expectWidth =
-        MediaQuery.of(context).size.width * 0.7 + userSetting.dragStartX;
+    var expectWidth = MediaQuery.of(context).size.width * 0.7 + userSetting.dragStartX;
     var leftWidth = MediaQuery.of(context).size.width - expectWidth;
     final atLeastWidth = 320.0;
     if (leftWidth < atLeastWidth) {
@@ -300,10 +287,7 @@ class _IllustRowPageState extends State<IllustRowPage>
                         child: CustomScrollView(
                           controller: _scrollController,
                           slivers: [
-                            SliverToBoxAdapter(
-                                child: Container(
-                                    height:
-                                        MediaQuery.of(context).padding.top)),
+                            SliverToBoxAdapter(child: Container(height: MediaQuery.of(context).padding.top)),
                             SliverToBoxAdapter(
                               child: IllustDetailContent(
                                 illusts: data,
@@ -348,9 +332,7 @@ class _IllustRowPageState extends State<IllustRowPage>
   SliverGrid _buildRecom() {
     return SliverGrid(
         delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          var list = _aboutStore.illusts
-              .map((element) => IllustStore(element.id, element))
-              .toList();
+          var list = _aboutStore.illusts.map((element) => IllustStore(element.id, element)).toList();
           return InkWell(
             onTap: () {
               Leader.push(
@@ -364,9 +346,7 @@ class _IllustRowPageState extends State<IllustRowPage>
             onLongPress: () {
               saveStore.saveImage(_aboutStore.illusts[index]);
               if (userSetting.starAfterSave && (_illustStore.state == 0)) {
-                _illustStore.star(
-                    restrict:
-                        userSetting.defaultPrivateLike ? "private" : "public");
+                _illustStore.star(restrict: userSetting.defaultPrivateLike ? "private" : "public");
               }
             },
             child: PixivImage(
@@ -375,8 +355,7 @@ class _IllustRowPageState extends State<IllustRowPage>
             ),
           );
         }, childCount: _aboutStore.illusts.length),
-        gridDelegate:
-            SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3));
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3));
   }
 
   List<Widget> _buildPhotoList(Illusts data, bool centerType, double height) {
@@ -402,8 +381,7 @@ class _IllustRowPageState extends State<IllustRowPage>
                     return _buildPicture(data, height);
                   }, childCount: 1)))
             : SliverList(
-                delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
+                delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
                 return InkWell(
                     onLongPress: () {
                       _pressSave(data, index);
@@ -472,8 +450,7 @@ class _IllustRowPageState extends State<IllustRowPage>
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child:
-                Text(':(', style: Theme.of(context).textTheme.headlineMedium),
+            child: Text(':(', style: Theme.of(context).textTheme.headlineMedium),
           ),
           Text(
             '${_illustStore.errorMessage}',
@@ -514,8 +491,7 @@ class _IllustRowPageState extends State<IllustRowPage>
         placeWidget: Container(
           height: height,
           child: Center(
-            child: Text('$index',
-                style: Theme.of(context).textTheme.headlineMedium),
+            child: Text('$index', style: Theme.of(context).textTheme.headlineMedium),
           ),
         ),
       );
@@ -546,8 +522,7 @@ class _IllustRowPageState extends State<IllustRowPage>
             placeWidget: Container(
               height: 150,
               child: Center(
-                child: Text('$index',
-                    style: Theme.of(context).textTheme.headlineMedium),
+                child: Text('$index', style: Theme.of(context).textTheme.headlineMedium),
               ),
             ),
           );
@@ -583,8 +558,7 @@ class _IllustRowPageState extends State<IllustRowPage>
         })) {
       case 0:
         {
-          muteStore.insertBanTag(BanTagPersist(
-              name: f.name, translateName: f.translatedName ?? ""));
+          muteStore.insertBanTag(BanTagPersist(name: f.name, translateName: f.translatedName ?? ""));
         }
         break;
       case 1:
@@ -625,20 +599,14 @@ class _IllustRowPageState extends State<IllustRowPage>
                   text: " ",
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
-                TextSpan(
-                    text: "${f.translatedName ?? "~"}",
-                    style: Theme.of(context).textTheme.bodySmall)
+                TextSpan(text: "${f.translatedName ?? "~"}", style: Theme.of(context).textTheme.bodySmall)
               ],
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall!
-                  .copyWith(color: Theme.of(context).colorScheme.secondary))),
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Theme.of(context).colorScheme.secondary))),
     );
   }
 
   Widget _buildNameAvatar(BuildContext context, Illusts illust) {
-    if (userStore == null)
-      userStore = UserStore(illust.user.id, null, illust.user);
+    if (userStore == null) userStore = UserStore(illust.user.id, null, illust.user);
     return Observer(builder: (_) {
       Future.delayed(Duration(seconds: 2), () {
         _loadAbout();
@@ -664,17 +632,14 @@ class _IllustRowPageState extends State<IllustRowPage>
                           child: Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: userStore!.isFollow
-                                  ? Colors.yellow
-                                  : Theme.of(context).colorScheme.secondary,
+                              color: userStore!.isFollow ? Colors.yellow : Theme.of(context).colorScheme.secondary,
                             ),
                           ),
                         ),
                       ),
                       Center(
                         child: Hero(
-                          tag: illust.user.profileImageUrls.medium +
-                              this.hashCode.toString(),
+                          tag: illust.user.profileImageUrls.medium + this.hashCode.toString(),
                           child: PainterAvatar(
                             url: illust.user.profileImageUrls.medium,
                             id: illust.user.id,
@@ -686,8 +651,7 @@ class _IllustRowPageState extends State<IllustRowPage>
                                     userStore: userStore,
                                     heroTag: this.hashCode.toString(),
                                   ));
-                              _illustStore.illusts!.user.isFollowed =
-                                  userStore!.isFollow;
+                              _illustStore.illusts!.user.isFollowed = userStore!.isFollow;
                             },
                           ),
                         ),
@@ -707,8 +671,7 @@ class _IllustRowPageState extends State<IllustRowPage>
                   SelectionArea(
                     child: Text(
                       illust.title,
-                      style: TextStyle(
-                          color: Theme.of(context).colorScheme.secondary),
+                      style: TextStyle(color: Theme.of(context).colorScheme.secondary),
                     ),
                   ),
                   Container(
@@ -740,8 +703,7 @@ class _IllustRowPageState extends State<IllustRowPage>
     if (userSetting.illustDetailSaveSkipLongPress) {
       saveStore.saveImage(illust, index: index);
       if (userSetting.starAfterSave && (_illustStore.state == 0)) {
-        _illustStore.star(
-            restrict: userSetting.defaultPrivateLike ? "private" : "public");
+        _illustStore.star(restrict: userSetting.defaultPrivateLike ? "private" : "public");
       }
       return;
     }
@@ -774,26 +736,33 @@ class _IllustRowPageState extends State<IllustRowPage>
                   onTap: () async {
                     Navigator.of(context).pop();
                     saveStore.saveImage(illust, index: index);
-                    if (userSetting.starAfterSave &&
-                        (_illustStore.state == 0)) {
-                      _illustStore.star(
-                          restrict: userSetting.defaultPrivateLike
-                              ? "private"
-                              : "public");
+                    if (userSetting.starAfterSave && (_illustStore.state == 0)) {
+                      _illustStore.star(restrict: userSetting.defaultPrivateLike ? "private" : "public");
                     }
                   },
                   onLongPress: () async {
                     Navigator.of(context).pop();
                     saveStore.saveImage(illust, index: index);
-                    if (userSetting.starAfterSave &&
-                        (_illustStore.state == 0)) {
-                      _illustStore.star(
-                          restrict: userSetting.defaultPrivateLike
-                              ? "private"
-                              : "public");
+                    if (userSetting.starAfterSave && (_illustStore.state == 0)) {
+                      _illustStore.star(restrict: userSetting.defaultPrivateLike ? "private" : "public");
                     }
                   },
                   title: Text(I18n.of(context).save),
+                ),
+                ListTile(
+                  leading: Icon(Icons.share),
+                  onTap: () async {
+                    final renderBox = context.findRenderObject() as RenderBox?;
+                    final origin = renderBox != null ? renderBox.localToGlobal(Offset.zero) & renderBox.size : null;
+                    Navigator.of(context).pop();
+                    await shareIllustImage(
+                      context: this.context,
+                      illust: illust,
+                      index: index,
+                      origin: origin,
+                    );
+                  },
+                  title: Text(I18n.of(context).share),
                 ),
                 ListTile(
                   leading: Icon(Icons.cancel),
@@ -818,8 +787,7 @@ class _IllustRowPageState extends State<IllustRowPage>
     final result = await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16.0))),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16.0))),
         builder: (context) {
           return StatefulBuilder(builder: (context, setDialogState) {
             return SafeArea(
@@ -882,14 +850,11 @@ class _IllustRowPageState extends State<IllustRowPage>
                           ));
                         },
                         itemCount: illust.metaPages.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
                       ),
                     ),
                     ListTile(
-                      leading: Icon(!allOn
-                          ? Icons.check_circle_outline
-                          : Icons.check_circle),
+                      leading: Icon(!allOn ? Icons.check_circle_outline : Icons.check_circle),
                       title: Text(I18n.of(context).all),
                       onTap: () {
                         allOn = !allOn;
@@ -932,9 +897,7 @@ class _IllustRowPageState extends State<IllustRowPage>
         builder: (_) {
           return Container(
             decoration: BoxDecoration(
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(8.0),
-                    topRight: Radius.circular(8.0))),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(8.0), topRight: Radius.circular(8.0))),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -964,10 +927,8 @@ class _IllustRowPageState extends State<IllustRowPage>
                         ),
                         onTap: () async {
                           await Clipboard.setData(ClipboardData(
-                              text:
-                                  'title:${illusts.title}\npainter:${illusts.user.name}\nillust id:${widget.id}'));
-                          BotToast.showText(
-                              text: I18n.of(context).copied_to_clipboard);
+                              text: 'title:${illusts.title}\npainter:${illusts.user.name}\nillust id:${widget.id}'));
+                          BotToast.showText(text: I18n.of(context).copied_to_clipboard);
                           Navigator.of(context).pop();
                         },
                       ),
@@ -978,15 +939,10 @@ class _IllustRowPageState extends State<IllustRowPage>
                             Icons.share,
                           ),
                           onTap: () {
-                            final box =
-                                context.findRenderObject() as RenderBox?;
-                            final pos = box != null
-                                ? box.localToGlobal(Offset.zero) & box.size
-                                : null;
+                            final box = context.findRenderObject() as RenderBox?;
+                            final pos = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
                             Navigator.of(context).pop();
-                            Share.share(
-                                "https://www.pixiv.net/artworks/${widget.id}",
-                                sharePositionOrigin: pos);
+                            Share.share("https://www.pixiv.net/artworks/${widget.id}", sharePositionOrigin: pos);
                           },
                         );
                       }),
@@ -996,11 +952,8 @@ class _IllustRowPageState extends State<IllustRowPage>
                         ),
                         title: Text(I18n.of(context).link),
                         onTap: () async {
-                          await Clipboard.setData(ClipboardData(
-                              text:
-                                  "https://www.pixiv.net/artworks/${widget.id}"));
-                          BotToast.showText(
-                              text: I18n.of(context).copied_to_clipboard);
+                          await Clipboard.setData(ClipboardData(text: "https://www.pixiv.net/artworks/${widget.id}"));
+                          BotToast.showText(text: I18n.of(context).copied_to_clipboard);
                           Navigator.of(context).pop();
                         },
                       ),
@@ -1008,9 +961,8 @@ class _IllustRowPageState extends State<IllustRowPage>
                         title: Text(I18n.of(context).ban),
                         leading: Icon(Icons.brightness_auto),
                         onTap: () {
-                          muteStore.insertBanIllusts(BanIllustIdPersist(
-                              illustId: widget.id.toString(),
-                              name: illusts.title));
+                          muteStore.insertBanIllusts(
+                              BanIllustIdPersist(illustId: widget.id.toString(), name: illusts.title));
                           Navigator.pop(context);
                         },
                       ),
@@ -1023,8 +975,7 @@ class _IllustRowPageState extends State<IllustRowPage>
                               builder: (context) {
                                 return AlertDialog(
                                   title: Text(I18n.of(context).report),
-                                  content:
-                                      Text(I18n.of(context).report_message),
+                                  content: Text(I18n.of(context).report_message),
                                   actions: <Widget>[
                                     TextButton(
                                       child: Text(I18n.of(context).cancel),
@@ -1056,8 +1007,7 @@ class _IllustRowPageState extends State<IllustRowPage>
   }
 
   Future<void> _showBookMarkTag() async {
-    final result =
-        await Leader.pushWithScaffold(context, TagForIllustPage(id: widget.id));
+    final result = await Leader.pushWithScaffold(context, TagForIllustPage(id: widget.id));
     if (result is Map) {
       LPrinter.d(result);
       String restrict = result['restrict'];
