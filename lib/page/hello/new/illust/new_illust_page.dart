@@ -85,7 +85,7 @@ class _NewIllustPageState extends State<NewIllustPage> {
             padding: const EdgeInsets.only(top: 4.0),
             child: ActionChip(
               avatar: Icon(Icons.tune, size: 18),
-              label: Text('Filters'),
+              label: Text(I18n.of(context).filter_menu_title),
               onPressed: _showFilterBottomSheet,
               backgroundColor: Theme.of(context).cardColor,
               elevation: 2.0,
@@ -171,26 +171,26 @@ class _NewIllustPageState extends State<NewIllustPage> {
                       ),
                       const Divider(),
                       SwitchListTile(
-                        title: const Text('AI'),
+                        title: Text(I18n.of(context).filter_menu_ai),
                         value: localShowAI,
                         onChanged: applyShowAI,
                       ),
                       if (_hasAnyR18) ...[
                         const Divider(),
                         ListTile(
-                          title: const Text('R-18 Allow'),
+                          title: Text(I18n.of(context).filter_menu_r18_allow),
                           trailing: localR18 == 0 ? const Icon(Icons.check) : null,
                           selected: localR18 == 0,
                           onTap: () => applyR18(0),
                         ),
                         ListTile(
-                          title: const Text('R-18 Hide'),
+                          title: Text(I18n.of(context).filter_menu_r18_hide),
                           trailing: localR18 == 1 ? const Icon(Icons.check) : null,
                           selected: localR18 == 1,
                           onTap: () => applyR18(1),
                         ),
                         ListTile(
-                          title: const Text('R-18 Only'),
+                          title: Text(I18n.of(context).filter_menu_r18_only),
                           trailing: localR18 == 2 ? const Icon(Icons.check) : null,
                           selected: localR18 == 2,
                           onTap: () => applyR18(2),
