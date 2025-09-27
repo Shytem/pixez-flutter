@@ -56,6 +56,8 @@ class LightingList extends StatefulWidget {
   final bool? ai;
   // R-18 filter mode: 0 allow, 1 hide, 2 only.
   final int? r18Mode;
+  // Notifies when the backing list contains any R-18 items.
+  final ValueChanged<bool>? onHasR18Changed;
 
   const LightingList(
       {Key? key,
@@ -65,7 +67,8 @@ class LightingList extends StatefulWidget {
       this.scrollController,
       this.portal,
       this.ai,
-      this.r18Mode})
+      this.r18Mode,
+      this.onHasR18Changed})
       : super(key: key);
 
   @override
@@ -78,6 +81,7 @@ class _LightingListState extends State<LightingList> {
   late ScrollController _scrollController;
   late bool _ai;
   late int _r18Mode;
+  bool? _lastHasR18;
 
   @override
   void didUpdateWidget(LightingList oldWidget) {
@@ -148,6 +152,7 @@ class _LightingListState extends State<LightingList> {
   List<IllustStore> _filteredStores() {
     // Start from original list without mutating it.
     final List<IllustStore> original = List.of(_store.iStores);
+    _notifyHasR18(original);
     // Apply existing user mute filters (tags, users, etc.).
     final afterMute = original.where((element) => !element.illusts!.hateByUser(ai: false)).toList();
     // Apply local AI filter when enabled.
@@ -163,6 +168,18 @@ class _LightingListState extends State<LightingList> {
       res = res.where((e) => _isR18(e)).toList();
     }
     return res;
+  }
+
+  void _notifyHasR18(List<IllustStore> stores) {
+    final callback = widget.onHasR18Changed;
+    if (callback == null) return;
+    final hasR18 = stores.any(_isR18);
+    if (_lastHasR18 == hasR18) return;
+    _lastHasR18 = hasR18;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      callback(hasR18);
+    });
   }
 
   bool _isR18(IllustStore e) {

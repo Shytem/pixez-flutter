@@ -17,7 +17,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:pixez/component/sort_group.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/lighting/lighting_page.dart';
 import 'package:pixez/lighting/lighting_store.dart';
@@ -42,14 +41,14 @@ class _NewIllustPageState extends State<NewIllustPage> {
   late String _restrict;
   // R-18 filter mode: 0 allow, 1 hide, 2 only. Default allow (show).
   int _r18Mode = 0;
+  bool _hasAnyR18 = false;
 
   @override
   void initState() {
     _scrollController = ScrollController();
     _restrict = widget.restrict;
-    futureGet = ApiForceSource(
-        futureGet: (e) => apiClient.getFollowIllusts(_restrict, force: e),
-        glanceKey: "follow_illust");
+    futureGet =
+        ApiForceSource(futureGet: (e) => apiClient.getFollowIllusts(_restrict, force: e), glanceKey: "follow_illust");
     super.initState();
     subscription = topStore.topStream.listen((event) {
       if (event == "301") {
@@ -78,6 +77,7 @@ class _NewIllustPageState extends State<NewIllustPage> {
           portal: "new",
           ai: _hideAI,
           r18Mode: _r18Mode,
+          onHasR18Changed: _handleHasR18Changed,
         ),
         Align(
           alignment: Alignment.topCenter,
@@ -119,14 +119,17 @@ class _NewIllustPageState extends State<NewIllustPage> {
                   );
                 });
               }
+
               void applyShowAI(bool v) {
                 setModalState(() => localShowAI = v);
                 setState(() => _hideAI = !v);
               }
+
               void applyR18(int mode) {
                 setModalState(() => localR18 = mode);
                 setState(() => _r18Mode = mode);
               }
+
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                 child: SingleChildScrollView(
@@ -134,72 +137,74 @@ class _NewIllustPageState extends State<NewIllustPage> {
                     bottom: MediaQuery.of(context).padding.bottom + 12,
                   ),
                   child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade400,
-                          borderRadius: BorderRadius.circular(2),
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade400,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
-                    ),
-                    ListTile(
-                      title: Text(I18n.of(context).all),
-                      trailing: localRestrict == 'all' ? const Icon(Icons.check) : null,
-                      selected: localRestrict == 'all',
-                      onTap: () => applyRestrict('all'),
-                    ),
-                    ListTile(
-                      title: Text(I18n.of(context).public),
-                      trailing: localRestrict == 'public' ? const Icon(Icons.check) : null,
-                      selected: localRestrict == 'public',
-                      onTap: () => applyRestrict('public'),
-                    ),
-                    ListTile(
-                      title: Text(I18n.of(context).private),
-                      trailing: localRestrict == 'private' ? const Icon(Icons.check) : null,
-                      selected: localRestrict == 'private',
-                      onTap: () => applyRestrict('private'),
-                    ),
-                    const Divider(),
-                    SwitchListTile(
-                      title: const Text('AI'),
-                      value: localShowAI,
-                      onChanged: applyShowAI,
-                    ),
-                    const Divider(),
-                    ListTile(
-                      title: const Text('R-18 Allow'),
-                      trailing: localR18 == 0 ? const Icon(Icons.check) : null,
-                      selected: localR18 == 0,
-                      onTap: () => applyR18(0),
-                    ),
-                    ListTile(
-                      title: const Text('R-18 Hide'),
-                      trailing: localR18 == 1 ? const Icon(Icons.check) : null,
-                      selected: localR18 == 1,
-                      onTap: () => applyR18(1),
-                    ),
-                    ListTile(
-                      title: const Text('R-18 Only'),
-                      trailing: localR18 == 2 ? const Icon(Icons.check) : null,
-                      selected: localR18 == 2,
-                      onTap: () => applyR18(2),
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () => Navigator.of(ctx).pop(),
-                        child: Text(I18n.of(context).ok),
+                      ListTile(
+                        title: Text(I18n.of(context).all),
+                        trailing: localRestrict == 'all' ? const Icon(Icons.check) : null,
+                        selected: localRestrict == 'all',
+                        onTap: () => applyRestrict('all'),
                       ),
-                    ),
-                  ],
-                ),
+                      ListTile(
+                        title: Text(I18n.of(context).public),
+                        trailing: localRestrict == 'public' ? const Icon(Icons.check) : null,
+                        selected: localRestrict == 'public',
+                        onTap: () => applyRestrict('public'),
+                      ),
+                      ListTile(
+                        title: Text(I18n.of(context).private),
+                        trailing: localRestrict == 'private' ? const Icon(Icons.check) : null,
+                        selected: localRestrict == 'private',
+                        onTap: () => applyRestrict('private'),
+                      ),
+                      const Divider(),
+                      SwitchListTile(
+                        title: const Text('AI'),
+                        value: localShowAI,
+                        onChanged: applyShowAI,
+                      ),
+                      if (_hasAnyR18) ...[
+                        const Divider(),
+                        ListTile(
+                          title: const Text('R-18 Allow'),
+                          trailing: localR18 == 0 ? const Icon(Icons.check) : null,
+                          selected: localR18 == 0,
+                          onTap: () => applyR18(0),
+                        ),
+                        ListTile(
+                          title: const Text('R-18 Hide'),
+                          trailing: localR18 == 1 ? const Icon(Icons.check) : null,
+                          selected: localR18 == 1,
+                          onTap: () => applyR18(1),
+                        ),
+                        ListTile(
+                          title: const Text('R-18 Only'),
+                          trailing: localR18 == 2 ? const Icon(Icons.check) : null,
+                          selected: localR18 == 2,
+                          onTap: () => applyR18(2),
+                        ),
+                      ],
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          child: Text(I18n.of(context).ok),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -207,6 +212,16 @@ class _NewIllustPageState extends State<NewIllustPage> {
         );
       },
     );
+  }
+
+  void _handleHasR18Changed(bool hasR18) {
+    if (_hasAnyR18 == hasR18 && (hasR18 || _r18Mode == 0)) return;
+    setState(() {
+      _hasAnyR18 = hasR18;
+      if (!hasR18 && _r18Mode != 0) {
+        _r18Mode = 0;
+      }
+    });
   }
 
   Container buildContainer(BuildContext context) {
@@ -233,8 +248,7 @@ class _NewIllustPageState extends State<NewIllustPage> {
                               Navigator.of(context).pop();
                               setState(() {
                                 futureGet = ApiForceSource(
-                                    futureGet: (e) => apiClient
-                                        .getFollowIllusts('all', force: e),
+                                    futureGet: (e) => apiClient.getFollowIllusts('all', force: e),
                                     glanceKey: "follow_illust");
                               });
                             },
@@ -245,8 +259,7 @@ class _NewIllustPageState extends State<NewIllustPage> {
                               Navigator.of(context).pop();
                               setState(() {
                                 futureGet = ApiForceSource(
-                                    futureGet: (e) => apiClient
-                                        .getFollowIllusts('public', force: e),
+                                    futureGet: (e) => apiClient.getFollowIllusts('public', force: e),
                                     glanceKey: "follow_illust");
                               });
                             },
@@ -257,8 +270,7 @@ class _NewIllustPageState extends State<NewIllustPage> {
                               Navigator.of(context).pop();
                               setState(() {
                                 futureGet = ApiForceSource(
-                                    futureGet: (e) => apiClient
-                                        .getFollowIllusts('private', force: e),
+                                    futureGet: (e) => apiClient.getFollowIllusts('private', force: e),
                                     glanceKey: "follow_illust");
                               });
                             },
